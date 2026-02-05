@@ -9,7 +9,7 @@ def generate_podcast_script():
     )
 
     prompt = f"""
-Crie um roteiro de podcast de tecnologia, fluido e bem explicado,
+Crie um texto no formato de podcast de tecnologia, fluido e bem explicado,
 com cerca de 5 minutos de duração, baseado nas notícias abaixo:
 
 {news_text}
