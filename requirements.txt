@@ -1,8 +1,0 @@
-requests
-feedparser
-chromadb
-sentence-transformers
-pyttsx3
-torch
-numpy
-soundfile
