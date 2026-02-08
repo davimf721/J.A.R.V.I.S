@@ -1,0 +1,8 @@
+SETUP_OLLAMA.md
+jarvis-core/data/
+jarvis-core/podcast.wav
+jarvis-core/diagnose_ollama.py
+jarvis-core/test_setup.py
+jarvis-core/test_ollama.py
+jarvis-voice/podcast.wav
+jarvis-voice/test.py

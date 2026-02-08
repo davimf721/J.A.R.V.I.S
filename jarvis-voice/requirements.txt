@@ -1,3 +1,2 @@
-pocket-tts
-torch
+edge-tts
 numpy

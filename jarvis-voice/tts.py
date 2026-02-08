@@ -1,34 +1,54 @@
-from pocket_tts import TTSModel
-import soundfile as sf
-import torch
+import edge_tts
+import asyncio
+import traceback
+from text_formatter import format_for_speech
 
-print("🧠 [TTS] Carregando modelo...")
-# Carrega o modelo com os parâmetros padrão
-tts_model = TTSModel.load_model()
+print("🧠 [TTS] Inicializando TTS...")
 
-# Estado persistente (necessário para o modelo manter contexto se desejado)
-# Para uma geração simples, podemos inicializar um estado vazio ou deixar o método lidar
-_model_state: dict = {}
+# Vozes disponíveis para português brasileiro:
+# - pt-BR-AntonioNeural (masculina - padrão, mais profissional)
+# - pt-BR-FranciscaNeural (feminina - mais jovem/dinâmica)
+# - pt-BR-ThalitaMultilingualNeural (feminina - multilíngue)
+# - pt-PT-DuarteNeural (masculina - português de Portugal)
+# - pt-PT-RaquelNeural (feminina - português de Portugal)
+
+VOICE = "pt-BR-FranciscaNeural"  # Voz masculina natural
+RATE = "+0%"  # Velocidade normal (pode ser +10%, -10%, etc)
+PITCH = "+0Hz"  # Tom normal (pode ser +50Hz para mais agudo, -50Hz para mais grave)
+
+async def generate_audio_async(text: str, output_path: str):
+    """Gera áudio de forma assíncrona usando edge-tts"""
+    try:
+        # Formata o texto para ser mais natural
+        formatted_text = format_for_speech(text)
+        
+        print(f"  🎬 [TTS] Gerando áudio ({len(formatted_text)} caracteres)...")
+        
+        communicate = edge_tts.Communicate(
+            text=formatted_text,
+            voice=VOICE,
+            rate=RATE,
+            pitch=PITCH
+        )
+        
+        await communicate.save(output_path)
+        print(f"  ✅ [TTS] Arquivo salvo com sucesso")
+        
+    except Exception as e:
+        print(f"  ❌ [TTS] Erro na geração de áudio: {type(e).__name__}: {e}")
+        print(f"  📋 [TTS] Stack trace:")
+        traceback.print_exc()
+        raise
 
 def text_to_speech(text: str, output_path: str):
-    global _model_state
-    
-    # Se o estado estiver vazio, precisamos inicializá-lo adequadamente para o modelo
-    # No pocket-tts, o estado geralmente é gerenciado internamente ou passado vazio
-    # O método generate_audio espera o model_state.
-    
-    # ✅ USO CORRETO DO MÉTODO PÚBLICO
-    # generate_audio retorna um torch.Tensor [samples]
-    audio_tensor = tts_model.generate_audio(
-        model_state=_model_state,
-        text_to_generate=text
-    )
+    """Interface síncrona para gerar TTS"""
+    try:
+        print(f"  📝 [TTS] Processando texto...")
+        # Executar a função assíncrona
+        asyncio.run(generate_audio_async(text, output_path))
+        
+    except Exception as e:
+        print(f"  ❌ [TTS] Erro ao processar: {type(e).__name__}: {e}")
+        raise
 
-    # Converter para numpy para salvar com soundfile
-    audio_numpy = audio_tensor.cpu().numpy()
-
-    sf.write(
-        output_path,
-        audio_numpy,
-        tts_model.sample_rate
-    )
+print("✅ [TTS] TTS inicializado com sucesso")

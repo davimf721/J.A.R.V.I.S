@@ -34,7 +34,7 @@ def store_memory(text: str):
     print("🧠 [MEMORY] Memória salva com sucesso.")
 
 
-def recall_memory(query: str, n: int = 5):
+def recall_memory(query: str, n: int = 10):
     print("🧠 [MEMORY] Buscando memórias relevantes...")
 
     total = collection.count()
