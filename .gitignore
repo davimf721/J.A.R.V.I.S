@@ -1,8 +1,110 @@
-SETUP_OLLAMA.md
-jarvis-core/data/
-jarvis-core/podcast.wav
-jarvis-core/diagnose_ollama.py
-jarvis-core/test_setup.py
-jarvis-core/test_ollama.py
-jarvis-voice/podcast.wav
-jarvis-voice/test.py
+# ==================== MODELOS ANTIGOS (COMPARACAO LOCAL) ====================
+# Estas pastas sao do modelo monolitico antiga
+# Mantidas localmente para comparacao mas NAO devem ir para GitHub
+jarvis-core/
+jarvis-voice/
+
+# ==================== DADOS E PODCASTS ====================
+podcasts/
+*.wav
+*.mp3
+
+# ==================== CACHE PYTHON ====================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+PIPFILE.lock
+
+# ==================== AMBIENTES VIRTUAIS ====================
+.env
+.env.local
+.env.*.local
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# ==================== DOCKER ====================
+# Dados persistentes do Docker (rebuildar automaticamente)
+data/
+volumes/
+
+# ==================== IDE E EDITORES ====================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.sublime-project
+.sublime-workspace
+*.iml
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+.DS_Store
+
+# ==================== SISTEMAS OPERACIONAIS ====================
+Thumbs.db
+.DS_Store
+.AppleDouble
+.LSOverride
+*.log
+
+# ==================== TESTES ====================
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# ==================== NODE ====================
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# ==================== ARQUIVOS TEMPORARIOS ====================
+*.tmp
+*.temp
+*.bak
+*.swp
+.~*.ppt*
+
+# ==================== GIT ====================
+.git/
+.gitmodules
+
+# ==================== DOCUMENTACAO GERADA ====================
+site/
+docs/_build/
+
+# ==================== ARQUIVOS LOCAIS DE CONFIGURACAO ====================
+.env.development.local
+.env.test.local
+.env.production.local
+Thumbs.db
