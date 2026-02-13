@@ -19,10 +19,20 @@ SERVICE_URLS = {
     "orchestrator": os.getenv("ORCHESTRATOR_URL", "http://orchestrator:8010"),
 }
 
-# ==================== OLLAMA ====================
+# ==================== LLM CONFIGURATION ====================
+# Provedor de LLM: "groq", "ollama", ou "gemini"
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "groq")
+
+# Groq API (Recomendado - gratuito e rápido)
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+
+# Ollama (Local - fallback)
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://ollama:11435/api/generate")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "kimi-k2.5:cloud")
-LLM_TIMEOUT = int(os.getenv("LLM_TIMEOUT", "300"))
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
+
+# Configurações gerais
+LLM_TIMEOUT = int(os.getenv("LLM_TIMEOUT", "60"))  # Groq é muito rápido
 
 # ==================== BANCO DE DADOS ====================
 # PostgreSQL

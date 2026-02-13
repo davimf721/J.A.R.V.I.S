@@ -7,7 +7,7 @@ Sistema de **geração automática de podcasts** baseado em inteligência artifi
 JARVIS é uma plataforma que:
 
 - 📰 **Busca notícias** automaticamente da internet
-- 🤖 **Processa com IA** usando modelos LLM locais (Ollama)
+- 🤖 **Processa com IA** usando Groq API (gratuito) ou Ollama local
 - 📝 **Gera roteiros** de podcast dinamicamente
 - 🎙️ **Sintetiza voz** em português
 - 💾 **Armazena embeddings** vetoriais para busca semântica
@@ -17,13 +17,24 @@ JARVIS é uma plataforma que:
 
 ---
 
+## ⚡ Novidade: Suporte ao Groq API (Recomendado!)
+
+O projeto agora suporta **Groq API** - uma alternativa **gratuita e ultra-rápida** ao Ollama local:
+- 🚀 **Respostas em ~500ms** (vs 30-120s com Ollama local)
+- 💰 **100% gratuito** para desenvolvimento e demos
+- 🧠 **Llama 3.3 70B** - modelo estado da arte
+
+👉 **[Configurar Groq](GROQ_SETUP.md)** - Setup em 2 minutos!
+
+---
+
 ## 🏗️ Arquitetura
 
 ### Microserviços (6 serviços FastAPI)
 
 | Serviço | Porta | Função |
 |---------|-------|--------|
-| **llm-service** | 8001 | Integração com Ollama/LLM local |
+| **llm-service** | 8001 | Integração com Groq/Ollama (IA) |
 | **news-service** | 8002 | Busca e processamento de notícias |
 | **script-service** | 8003 | Geração dinâmica de roteiros |
 | **tts-service** | 8004 | Síntese de voz (Text-to-Speech) |

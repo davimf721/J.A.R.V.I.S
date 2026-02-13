@@ -111,23 +111,28 @@ services:
 
   # ==================== MICROSERVIÇOS ====================
 
-  # LLM Service
+  # LLM Service (Suporta Groq ou Ollama)
   llm-service:
     build:
       context: .
       dockerfile: services/llm-service/Dockerfile
     container_name: jarvis-llm-service
     environment:
+      # Provedor: groq (recomendado) ou ollama
+      LLM_PROVIDER: ${LLM_PROVIDER:-groq}
+      # Groq (gratuito e rápido)
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_MODEL: ${GROQ_MODEL:-llama-3.3-70b-versatile}
+      # Ollama (local - fallback)
       OLLAMA_URL: "http://ollama:11435/api/generate"
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-kimi-k2.5:cloud}
-      LLM_TIMEOUT: ${LLM_TIMEOUT:-300}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2:3b}
+      LLM_TIMEOUT: ${LLM_TIMEOUT:-60}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       LOG_LEVEL: INFO
     ports:
       - "8001:8001"
     depends_on:
-      - ollama
       - redis
     networks:
       - jarvis-network
