@@ -7,7 +7,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY services/news-service . 
 COPY shared /shared
-COPY jarvis-core /jarvis-core
+
 
 EXPOSE 8002
 

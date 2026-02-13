@@ -11,7 +11,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY services/tts-service . 
 COPY shared /shared
-COPY jarvis-voice /jarvis-voice
+
 
 EXPOSE 8004
 

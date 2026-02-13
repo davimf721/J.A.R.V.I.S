@@ -28,19 +28,17 @@ logger = get_logger(__name__)
 # Inicializar ChromaDB
 try:
     import chromadb
-    from chromadb.config import Settings
     
-    settings = Settings(
-        chroma_db_impl="duckdb+parquet",
-        persist_directory=CHROMADB_PERSIST_DIR,
-        anonymized_telemetry=False
+    # Usando cliente HTTP para conectar ao container ChromaDB
+    chroma_client = chromadb.HttpClient(
+        host=CHROMADB_HOST,
+        port=int(CHROMADB_PORT)
     )
-    
-    # Usando cliente local
-    chroma_client = chromadb.Client(settings)
-    logger.info(f"✅ ChromaDB inicializado em {CHROMADB_PERSIST_DIR}")
+    # Testar conexão
+    chroma_client.heartbeat()
+    logger.info(f"✅ ChromaDB conectado em {CHROMADB_HOST}:{CHROMADB_PORT}")
 except Exception as e:
-    logger.error(f"❌ Erro ao inicializar ChromaDB: {e}")
+    logger.error(f"❌ Erro ao conectar ChromaDB: {e}")
     chroma_client = None
 
 
