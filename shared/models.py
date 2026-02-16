@@ -63,7 +63,7 @@ class PodcastRequest:
     agent_name: str = "jarvis"
     user_id: str = ""
     created_at: datetime = field(default_factory=datetime.utcnow)
-    news_count: int = 8
+    news_count: int = 10  # Aumentado para podcasts de ~12 minutos
     language: str = "pt-BR"
     voice: str = "pt-BR-FranciscaNeural"
     metadata: Dict[str, Any] = field(default_factory=dict)

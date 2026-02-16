@@ -8,6 +8,8 @@
 # Cores
 CYAN='\033[0;36m'
 GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[0;33m'
 NC='\033[0m'
 BOLD='\033[1m'
 
@@ -19,37 +21,46 @@ ${BOLD}Uso:${NC}
     $0 [opções]
 
 ${BOLD}Opções:${NC}
-    --name STRING       Nome do agente (padrão: JARVIS)
-    --type TYPE         Tipo de agente: news_anchor, storyteller, analyst
-                       (padrão: news_anchor)
-    --duration MINUTOS  Duração em minutos (padrão: 8)
+    --name STRING       Nome do agente/podcast (padrão: JARVIS)
+    --type TYPE         Tipo: podcast_daily, market_analysis, content_generator,
+                           email_summary, code_assistant (padrão: podcast_daily)
+    --duration MINUTOS  Duração em minutos (padrão: 12)
     --category CAT      Categoria de notícias (padrão: general)
     --language LANG     Idioma pt-BR, en-US, es-ES (padrão: pt-BR)
+    --output DIR        Diretório de saída (padrão: pasta atual)
     --wait              Aguardar conclusão e baixar áudio
     --help              Mostrar esta mensagem
 
 ${BOLD}Exemplos:${NC}
     # Criar podcast padrão
-    $0
+    $0 --wait
 
-    # Podcast de 10 minutos do tipo storyteller
-    $0 --type storyteller --duration 10
+    # Podcast de 10 minutos
+    $0 --duration 10 --wait
 
-    # Podcast com categoria tech e aguardar conclusão
-    $0 --category tech --wait
+    # Podcast com nome personalizado
+    $0 --name "MeuPodcast" --wait
 
     # Podcast em inglês
-    $0 --language en-US
+    $0 --language en-US --wait
+
+${BOLD}Tipos disponíveis:${NC}
+    podcast_daily      - Podcast com análise e opinião (padrão)
+    market_analysis    - Análise de mercado para investidores tech
+    content_generator  - Conteúdo educativo com explicações profundas
+    email_summary      - Briefing executivo rápido (~3 min)
+    code_assistant     - Dev Talk: podcast técnico para programadores
 
 EOF
 }
 
 # Defaults
 AGENT_NAME="JARVIS"
-AGENT_TYPE="news_anchor"
-DURATION=8
+AGENT_TYPE="podcast_daily"
+DURATION=12
 CATEGORY="general"
 LANGUAGE="pt-BR"
+OUTPUT_DIR="."
 WAIT=false
 
 # Parse arguments
@@ -73,6 +84,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --language)
             LANGUAGE="$2"
+            shift 2
+            ;;
+        --output)
+            OUTPUT_DIR="$2"
             shift 2
             ;;
         --wait)
@@ -164,13 +179,55 @@ if [ "$STATUS" = "pending" ]; then
                 echo ""
                 echo -e "${GREEN}[✓]${NC} Podcast concluído!"
                 
-                # Extract audio URL
-                AUDIO_URL=$(echo "$STATUS_RESPONSE" | jq -r '.result.audio_url // ""' 2>/dev/null)
-                if [ ! -z "$AUDIO_URL" ]; then
+                # Extract audio path from result
+                AUDIO_PATH=$(echo "$STATUS_RESPONSE" | jq -r '.result.audio_path // ""' 2>/dev/null)
+                
+                if [ ! -z "$AUDIO_PATH" ] && [ "$AUDIO_PATH" != "null" ]; then
                     echo ""
-                    echo -e "${GREEN}🎙️  Áudio gravado:${NC}"
-                    echo "  $AUDIO_URL"
+                    echo -e "${CYAN}[↳]${NC} Baixando áudio do container..."
+                    
+                    # Criar nome do arquivo de saída
+                    TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+                    OUTPUT_FILE="${OUTPUT_DIR}/${AGENT_NAME}_${TIMESTAMP}.mp3"
+                    
+                    # Extrair nome do arquivo do path
+                    AUDIO_FILENAME=$(basename "$AUDIO_PATH")
+                    
+                    # Copiar do container para local
+                    docker cp jarvis-tts-service:"$AUDIO_PATH" "$OUTPUT_FILE" 2>/dev/null
+                    
+                    if [ -f "$OUTPUT_FILE" ]; then
+                        FILE_SIZE=$(du -h "$OUTPUT_FILE" | cut -f1)
+                        echo -e "${GREEN}[✓]${NC} Áudio baixado com sucesso!"
+                        echo ""
+                        echo -e "${GREEN}🎙️  Arquivo salvo:${NC}"
+                        echo -e "    ${BOLD}$OUTPUT_FILE${NC} ($FILE_SIZE)"
+                        echo ""
+                        
+                        # Mostrar também o roteiro se disponível
+                        SCRIPT_PREVIEW=$(echo "$STATUS_RESPONSE" | jq -r '.result.script // ""' 2>/dev/null | head -c 200)
+                        if [ ! -z "$SCRIPT_PREVIEW" ] && [ "$SCRIPT_PREVIEW" != "null" ]; then
+                            echo -e "${CYAN}📝 Preview do roteiro:${NC}"
+                            echo "    ${SCRIPT_PREVIEW}..."
+                            echo ""
+                            
+                            # Salvar roteiro também
+                            SCRIPT_FILE="${OUTPUT_DIR}/${AGENT_NAME}_${TIMESTAMP}.txt"
+                            echo "$STATUS_RESPONSE" | jq -r '.result.script // ""' > "$SCRIPT_FILE"
+                            echo -e "${GREEN}[✓]${NC} Roteiro salvo em: ${BOLD}$SCRIPT_FILE${NC}"
+                        fi
+                    else
+                        echo -e "${YELLOW}[⚠]${NC} Não foi possível baixar o áudio automaticamente"
+                        echo "    Caminho no container: $AUDIO_PATH"
+                        echo ""
+                        echo "    Baixe manualmente com:"
+                        echo "    docker cp jarvis-tts-service:$AUDIO_PATH ./${AGENT_NAME}.mp3"
+                    fi
+                else
+                    echo ""
+                    echo -e "${YELLOW}[⚠]${NC} Áudio não encontrado no resultado"
                 fi
+                
                 COMPLETED=true
             elif [ "$CURRENT_STATUS" = "failed" ]; then
                 echo ""
@@ -192,7 +249,7 @@ if [ "$STATUS" = "pending" ]; then
         done
     else
         echo -e "${CYAN}[↳]${NC} Monitorar com:"
-        echo "  ${BOLD}./quick-podcast.sh --wait${NC}"
+        echo "  ${BOLD}bash quick-podcast.sh --wait${NC}"
         echo ""
         echo "Ou verificar status manualmente:"
         echo "  ${BOLD}curl http://localhost:8010/api/podcast/status/$PODCAST_ID${NC}"

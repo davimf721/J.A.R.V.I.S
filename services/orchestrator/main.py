@@ -125,11 +125,12 @@ async def process_podcast_pipeline(job_id: str, request: PodcastRequest):
     """
     Pipeline principal: orquestra todos os microserviços
     Fluxo:
-    1. Buscar notícias
-    2. Recuperar memória relevante
-    3. Gerar roteiro
-    4. Gerar áudio (TTS)
-    5. Salvar resultado
+    1. Buscar preferências do usuário
+    2. Buscar notícias (filtradas por preferências)
+    3. Recuperar memória relevante
+    4. Gerar roteiro
+    5. Gerar áudio (TTS)
+    6. Salvar resultado e aprender
     """
     logger.info(f"▶️  Iniciando pipeline para: {job_id}")
     
@@ -137,24 +138,64 @@ async def process_podcast_pipeline(job_id: str, request: PodcastRequest):
         # Atualizar status
         active_jobs[job_id]["status"] = "running"
         
-        # Step 1: Buscar notícias
-        logger.info(f"📰 Step 1/4: Buscando notícias...")
-        news_response = await news_client.post(
-            "/api/news/fetch",
-            data={
-                "language": request.language,
-                "limit": request.news_count
-            }
-        )
+        # Step 0: Buscar preferências do usuário
+        logger.info(f"⚙️  Step 0/5: Buscando preferências do usuário...")
+        user_preferences = {}
+        
+        if request.user_id:
+            prefs_response = await memory_client.get(f"/api/preferences/{request.user_id}")
+            if prefs_response and prefs_response.get("effective"):
+                user_preferences = prefs_response.get("effective", {})
+                logger.info(f"✅ Preferências carregadas: {len(user_preferences.get('keywords_boost', []))} keywords boost")
+            else:
+                logger.info("ℹ️  Nenhuma preferência encontrada, usando padrão")
+        
+        # Step 1: Buscar notícias (com preferências e tipo de agente)
+        logger.info(f"📰 Step 1/5: Buscando notícias para tipo '{request.agent_type.value}'...")
+        news_request_data = {
+            "language": request.language,
+            "limit": request.news_count,
+            "agent_type": request.agent_type.value  # Passar o tipo para buscar fontes específicas
+        }
+        
+        # Adicionar preferências à requisição se existirem
+        if user_preferences:
+            news_request_data.update({
+                "user_id": request.user_id,
+                "preferred_categories": user_preferences.get("preferred_categories", []),
+                "blocked_categories": user_preferences.get("blocked_categories", []),
+                "preferred_sources": user_preferences.get("preferred_sources", []),
+                "blocked_sources": user_preferences.get("blocked_sources", []),
+                "keywords_boost": user_preferences.get("keywords_boost", []),
+                "keywords_block": user_preferences.get("keywords_block", [])
+            })
+        
+        news_response = await news_client.post("/api/news/fetch", data=news_request_data)
         
         if not news_response:
             raise Exception("Falha ao buscar notícias")
         
         news_list = news_response.get("news", [])
-        logger.info(f"✅ {len(news_list)} notícias encontradas")
+        is_personalized = news_response.get("personalized", False)
+        logger.info(f"✅ {len(news_list)} notícias encontradas {'(personalizadas)' if is_personalized else ''}")
+        
+        # Step 1.5: Salvar histórico de notícias para feedback
+        if news_list and request.user_id:
+            try:
+                await memory_client.post(
+                    "/api/podcast/save-news",
+                    data={
+                        "podcast_id": request.id,
+                        "user_id": request.user_id,
+                        "news": news_list
+                    }
+                )
+                logger.info(f"📋 Histórico de {len(news_list)} notícias salvo para feedback")
+            except Exception as e:
+                logger.warning(f"⚠️  Falha ao salvar histórico: {e}")
         
         # Step 2: Recuperar memória relevante
-        logger.info(f"🧠 Step 2/4: Buscando memórias relevantes...")
+        logger.info(f"🧠 Step 2/5: Buscando memórias relevantes...")
         memory_response = await memory_client.post(
             "/api/memory/recall",
             data={
@@ -172,8 +213,15 @@ async def process_podcast_pipeline(job_id: str, request: PodcastRequest):
         else:
             logger.info("ℹ️  Nenhuma memória anterior encontrada")
         
+        # Adicionar contexto de preferências à memória
+        if user_preferences:
+            pref_context = f"\n\nPreferências do usuário: gosta de {', '.join(user_preferences.get('preferred_categories', [])[:3])}."
+            if user_preferences.get('keywords_boost'):
+                pref_context += f" Interesses: {', '.join(user_preferences.get('keywords_boost', [])[:5])}."
+            memory_context += pref_context
+        
         # Step 3: Gerar roteiro
-        logger.info(f"📝 Step 3/4: Gerando roteiro...")
+        logger.info(f"📝 Step 3/5: Gerando roteiro...")
         script_response = await script_client.post(
             "/api/script/generate",
             data={
@@ -192,7 +240,7 @@ async def process_podcast_pipeline(job_id: str, request: PodcastRequest):
         logger.info(f"✅ Roteiro gerado ({len(script)} caracteres)")
         
         # Step 4: Gerar áudio (TTS)
-        logger.info(f"🎙️  Step 4/4: Gerando áudio...")
+        logger.info(f"🎙️  Step 4/5: Gerando áudio...")
         tts_response = await tts_client.post(
             "/api/tts/generate",
             data={
@@ -239,13 +287,15 @@ async def process_podcast_pipeline(job_id: str, request: PodcastRequest):
             "/api/memory/store",
             data={
                 "user_id": request.user_id,
-                "content": f"Podcast gerado: {request.agent_name} - {request.agent_type.value}",
+                "content": f"Podcast gerado: {request.agent_name} - {request.agent_type.value}. Notícias usadas: {', '.join([n.get('title', '')[:50] for n in news_list[:3]])}",
                 "metadata": {
                     "job_id": job_id,
                     "news_count": len(news_list),
                     "duration": duration,
-                    "agent": request.agent_name
-                }
+                    "agent": request.agent_name,
+                    "personalized": is_personalized
+                },
+                "category": "podcast_history"
             }
         )
     

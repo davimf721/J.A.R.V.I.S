@@ -55,11 +55,12 @@ class CacheManager:
         if not self.enabled:
             return False
         try:
-            self.redis_client.setex(
-                key,
-                expire_seconds,
-                json.dumps(value)
-            )
+            serialized = json.dumps(value)
+            if expire_seconds <= 0:
+                # Sem expiração
+                self.redis_client.set(key, serialized)
+            else:
+                self.redis_client.setex(key, expire_seconds, serialized)
             return True
         except Exception as e:
             get_logger(__name__).error(f"Erro ao salvar cache: {e}")
